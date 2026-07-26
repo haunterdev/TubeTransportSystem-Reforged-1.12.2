@@ -1,0 +1,14 @@
+[{
+  "modid": "tts",
+  "name": "Tube Transport System",
+  "version": "${version}",
+  "mcversion": "${mcversion}",
+  "url": "https://github.com/haunterdev/TubeTransportSystem-Redux-1.12.2",
+  "credits": "Alz454 (polyrobot) for the original Tube Transport System",
+  "authorList": [ "Alz454", "hunterhaunter (1.12.2 port)" ],
+  "description": "Pneumatic tubes you ride yourself. Why should items get all the fun?",
+  "logoFile": "",
+  "updateUrl": "",
+  "parent": "",
+  "screenshots": [ ]
+}]
