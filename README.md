@@ -1,6 +1,6 @@
 <div align="center">
 
-  <h1>Tube Transport System Redux (1.12.2)</h1>
+  <h1>Tube Transport System: Reforged (1.12.2)</h1>
 
 </div>
 
