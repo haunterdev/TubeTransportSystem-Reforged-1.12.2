@@ -1,13 +1,11 @@
 <div align="center">
 
-  <h1>Tube Transport System Redux (1.12.2 Forge)</h1>
+  <h1>Tube Transport System Redux (1.12.2)</h1>
 
 </div>
 
-A 1.12.2 Forge port of [Tube Transport System](https://www.curseforge.com/minecraft/mc-mods/tube-transport-system)
-by Alz454 (polyrobot), originally for 1.7.10. Ported line for line from the
-[0.6 source](https://github.com/enhancedportals/TubeTransportSystem), so the blocks, recipes,
-speeds, and look all match the original. Where 1.12.2 forced a change, the code says so.
+A 1.12.2 port of [Tube Transport System](https://www.curseforge.com/minecraft/mc-mods/tube-transport-system)
+by Alz454 (polyrobot), built from the [0.6 source](https://github.com/enhancedportals/TubeTransportSystem).
 
 ## Features
 
@@ -33,8 +31,6 @@ speeds, and look all match the original. Where 1.12.2 forced a change, the code 
   takes its direction from the face you place it on.
 
 ## Changes from the 1.7.10 original
-
-Everything below is deliberate. Anything not listed here behaves as it did in 0.6.
 
 - The undirected tube has its own greyed out item texture so it is not mistaken for a directed one,
   and its tooltip explains that it faces the side you place it on.
