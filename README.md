@@ -2,8 +2,6 @@
 
   <h1>Tube Transport System Redux (1.12.2 Forge)</h1>
 
-  <p>Pneumatic tubes you ride yourself. Why should items get all the fun?</p>
-
 </div>
 
 A 1.12.2 Forge port of [Tube Transport System](https://www.curseforge.com/minecraft/mc-mods/tube-transport-system)
