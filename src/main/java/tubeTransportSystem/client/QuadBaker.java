@@ -2,16 +2,15 @@ package tubeTransportSystem.client;
 
 import java.util.List;
 
-import net.minecraft.client.renderer.block.model.BakedQuad;
-import net.minecraft.client.renderer.block.model.BlockFaceUV;
-import net.minecraft.client.renderer.block.model.BlockPartFace;
-import net.minecraft.client.renderer.block.model.FaceBakery;
-import net.minecraft.client.renderer.block.model.ModelRotation;
-import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
-import net.minecraft.util.EnumFacing;
+import org.joml.Vector3f;
 
-import org.lwjgl.util.vector.Vector3f;
+import net.minecraft.client.renderer.block.model.BakedQuad;
+import net.minecraft.client.renderer.block.model.BlockElementFace;
+import net.minecraft.client.renderer.block.model.BlockFaceUV;
+import net.minecraft.client.renderer.block.model.FaceBakery;
+import net.minecraft.client.renderer.texture.TextureAtlasSprite;
+import net.minecraft.client.resources.model.BlockModelRotation;
+import net.minecraft.core.Direction;
 
 /**
  * Builds axis-aligned box-face quads for the custom baked models, replacing the
@@ -39,7 +38,7 @@ public final class QuadBaker {
     private QuadBaker() {
     }
 
-    public static void addBoxFace(List<BakedQuad> out, EnumFacing face, TextureAtlasSprite sprite,
+    public static void addBoxFace(List<BakedQuad> out, Direction face, TextureAtlasSprite sprite,
             double x1, double y1, double z1, double x2, double y2, double z2) {
         addBoxFace(out, face, sprite, x1, y1, z1, x2, y2, z2, false, false, 0);
     }
@@ -49,7 +48,7 @@ public final class QuadBaker {
      * @param flipTexture      1.7.10 RenderBlocks.flipTexture (X/Z faces only)
      * @param uvRotation       0 or 180; 1.7.10 uvRotate* value 3 is a 180 degree texture turn
      */
-    public static void addBoxFace(List<BakedQuad> out, EnumFacing face, TextureAtlasSprite sprite,
+    public static void addBoxFace(List<BakedQuad> out, Direction face, TextureAtlasSprite sprite,
             double x1, double y1, double z1, double x2, double y2, double z2,
             boolean renderFromInside, boolean flipTexture, int uvRotation) {
         if (sprite == null) {
@@ -60,15 +59,15 @@ public final class QuadBaker {
 
         float[] uvs = defaultUvs(face, from, to);
         // flipTexture cancels the mirror the position swap implies, but only on X/Z faces
-        boolean mirrorU = renderFromInside && !(flipTexture && face.getAxis() != EnumFacing.Axis.Y);
+        boolean mirrorU = renderFromInside && !(flipTexture && face.getAxis() != Direction.Axis.Y);
         if (mirrorU) {
             float u = uvs[0];
             uvs[0] = uvs[2];
             uvs[2] = u;
         }
 
-        BlockPartFace part = new BlockPartFace(null, -1, "", new BlockFaceUV(uvs, uvRotation));
-        BakedQuad quad = BAKERY.makeBakedQuad(from, to, part, sprite, face, ModelRotation.X0_Y0, null, false, true);
+        BlockElementFace part = new BlockElementFace(null, -1, "", new BlockFaceUV(uvs, uvRotation));
+        BakedQuad quad = BAKERY.bakeQuad(from, to, part, sprite, face, BlockModelRotation.X0_Y0, null, true);
         if (renderFromInside) {
             quad = reverseWinding(quad, sprite);
         }
@@ -78,36 +77,36 @@ public final class QuadBaker {
     /**
      * Reverses the vertex order so the quad is front-facing from inside the box.
      * Each vertex keeps its own UV, so only the winding changes; the face, sprite
-     * and diffuse-lighting flag are preserved, which keeps the light sample and
-     * the vanilla face shade identical to the outward face (what 1.7.10 did).
+     * and shade flag are preserved, which keeps the light sample and the vanilla
+     * face shade identical to the outward face (what 1.7.10 did).
      */
     private static BakedQuad reverseWinding(BakedQuad quad, TextureAtlasSprite sprite) {
-        int[] src = quad.getVertexData();
+        int[] src = quad.getVertices();
         int stride = src.length / 4;
         int[] dst = new int[src.length];
         for (int v = 0; v < 4; v++) {
             System.arraycopy(src, (3 - v) * stride, dst, v * stride, stride);
         }
-        return new BakedQuad(dst, quad.getTintIndex(), quad.getFace(), sprite,
-                quad.shouldApplyDiffuseLighting(), DefaultVertexFormats.ITEM);
+        return new BakedQuad(dst, quad.getTintIndex(), quad.getDirection(), sprite,
+                quad.isShade(), quad.hasAmbientOcclusion());
     }
 
-    /** Same defaults BlockPart applies when a JSON face omits "uv" (positions in 0..16 space). */
-    private static float[] defaultUvs(EnumFacing face, Vector3f from, Vector3f to) {
+    /** Same defaults BlockElement applies when a JSON face omits "uv" (positions in 0..16 space). */
+    private static float[] defaultUvs(Direction face, Vector3f from, Vector3f to) {
         switch (face) {
             case DOWN:
-                return new float[]{from.x, 16.0f - to.z, to.x, 16.0f - from.z};
+                return new float[]{from.x(), 16.0f - to.z(), to.x(), 16.0f - from.z()};
             case UP:
-                return new float[]{from.x, from.z, to.x, to.z};
+                return new float[]{from.x(), from.z(), to.x(), to.z()};
             case SOUTH:
-                return new float[]{from.x, 16.0f - to.y, to.x, 16.0f - from.y};
+                return new float[]{from.x(), 16.0f - to.y(), to.x(), 16.0f - from.y()};
             case WEST:
-                return new float[]{from.z, 16.0f - to.y, to.z, 16.0f - from.y};
+                return new float[]{from.z(), 16.0f - to.y(), to.z(), 16.0f - from.y()};
             case EAST:
-                return new float[]{16.0f - to.z, 16.0f - to.y, 16.0f - from.z, 16.0f - from.y};
+                return new float[]{16.0f - to.z(), 16.0f - to.y(), 16.0f - from.z(), 16.0f - from.y()};
             case NORTH:
             default:
-                return new float[]{16.0f - to.x, 16.0f - to.y, 16.0f - from.x, 16.0f - from.y};
+                return new float[]{16.0f - to.x(), 16.0f - to.y(), 16.0f - from.x(), 16.0f - from.y()};
         }
     }
 }

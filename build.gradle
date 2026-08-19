@@ -1,33 +1,73 @@
 plugins {
-    id 'com.gtnewhorizons.retrofuturagradle' version '1.4.1'
+    id 'java-library'
+    id 'net.neoforged.moddev' version '2.0.144'
 }
 
-version = project.mod_version
+version = "${project.minecraft_version}-${project.mod_version}"
 group = project.mod_group
-archivesBaseName = project.mod_id
+
+base {
+    archivesName = project.mod_id
+}
 
 java {
-    toolchain {
-        languageVersion.set(JavaLanguageVersion.of(8))
+    toolchain.languageVersion = JavaLanguageVersion.of(21)
+}
+
+neoForge {
+    version = project.neoforge_version
+
+    runs {
+        client {
+            client()
+        }
+        server {
+            server()
+        }
+        configureEach {
+            logLevel = org.slf4j.event.Level.INFO
+        }
+    }
+
+    mods {
+        "${project.mod_id}" {
+            sourceSet sourceSets.main
+        }
     }
 }
 
-minecraft {
-    mcVersion = '1.12.2'
-    mcpMappingChannel = 'stable'
-    mcpMappingVersion = '39'
+repositories {
+    mavenCentral()
+    maven { url = 'https://maven.neoforged.net/releases' }
 }
 
-processResources {
-    inputs.property 'version', project.version
-    inputs.property 'mcversion', '1.12.2'
+tasks.withType(ProcessResources).configureEach {
+    var replaceProperties = [
+            minecraft_version      : project.minecraft_version,
+            minecraft_version_range: project.minecraft_version_range,
+            neoforge_version       : project.neoforge_version,
+            neoforge_version_range : project.neoforge_version_range,
+            loader_version_range   : project.loader_version_range,
+            mod_id                 : project.mod_id,
+            mod_name               : project.mod_name,
+            mod_license            : project.mod_license,
+            mod_version            : project.mod_version,
+            mod_authors            : project.mod_authors,
+            mod_description        : project.mod_description
+    ]
+    inputs.properties replaceProperties
 
-    filesMatching('mcmod.info') {
-        expand 'version': project.version, 'mcversion': '1.12.2'
+    filesMatching(['META-INF/neoforge.mods.toml']) {
+        expand replaceProperties
     }
 }
-
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
+}
+
+jar {
+    from('LICENSE') {
+        rename { "${it}_${project.base.archivesName.get()}" }
+    }
 }

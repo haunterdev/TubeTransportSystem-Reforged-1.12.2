@@ -1,143 +1,75 @@
 package tubeTransportSystem.block;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
+import com.mojang.serialization.MapCodec;
 
-import javax.annotation.Nullable;
-
-import net.minecraft.block.Block;
-import net.minecraft.block.material.Material;
-import net.minecraft.block.properties.IProperty;
-import net.minecraft.block.properties.PropertyInteger;
-import net.minecraft.block.state.BlockStateContainer;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.entity.Entity;
-import net.minecraft.util.BlockRenderLayer;
-import net.minecraft.util.EnumBlockRenderType;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.math.AxisAlignedBB;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.RayTraceResult;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.IBlockAccess;
-import net.minecraft.world.World;
-import net.minecraftforge.common.property.ExtendedBlockState;
-import net.minecraftforge.common.property.IExtendedBlockState;
-import net.minecraftforge.common.property.IUnlistedProperty;
-import tubeTransportSystem.TubeTransportSystem;
-import tubeTransportSystem.client.TubeRenderData;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.context.BlockPlaceContext;
+import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.LevelReader;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.level.block.state.properties.DirectionProperty;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.EntityCollisionContext;
+import net.minecraft.world.phys.shapes.Shapes;
+import net.minecraft.world.phys.shapes.VoxelShape;
+import tubeTransportSystem.Registration;
 import tubeTransportSystem.util.ConnectedTextures;
 import tubeTransportSystem.util.IConnectable;
-import tubeTransportSystem.util.UnlistedProperty;
 import tubeTransportSystem.util.Utilities;
 
+/**
+ * The 1.12.2 block kept its direction in metadata 0..5; here it is the {@code facing} property,
+ * so {@link #metaOf(BlockState)} is the bridge every ported table still uses.
+ */
 public class BlockTube extends Block implements IConnectable {
-    public static BlockTube instance;
-
-    public static final PropertyInteger META = PropertyInteger.create("meta", 0, 15);
-    public static final IUnlistedProperty<TubeRenderData> RENDER = new UnlistedProperty<TubeRenderData>("render", TubeRenderData.class);
+    public static final MapCodec<BlockTube> CODEC = simpleCodec(BlockTube::new);
+    public static final DirectionProperty FACING = BlockStateProperties.FACING;
 
     private final ConnectedTextures[] textures = new ConnectedTextures[12];
 
-    public BlockTube() {
-        super(Material.ROCK);
-        setTranslationKey("tube");
-        instance = this;
-        setLightOpacity(0);
-        setHardness(5.0f);
-        setCreativeTab(TubeTransportSystem.creativeTab);
-        setDefaultState(blockState.getBaseState().withProperty(META, 0));
+    public BlockTube(Properties properties) {
+        super(properties);
+        registerDefaultState(stateDefinition.any().setValue(FACING, Direction.DOWN));
         for (int i = 0; i < 6; i++) {
-            this.textures[i] = new ConnectedTextures("tts:tube" + i + "/%s", this, i);
+            this.textures[i] = new ConnectedTextures("tts:block/tube" + i + "/%s", this, i);
         }
         for (int i = 0; i < 6; i++) {
-            this.textures[i + 6] = new ConnectedTextures("tts:tube/%s", this, i);
+            this.textures[i + 6] = new ConnectedTextures("tts:block/tube/%s", this, i);
         }
+    }
+
+    @Override
+    protected MapCodec<? extends Block> codec() {
+        return CODEC;
+    }
+
+    @Override
+    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
+        builder.add(FACING);
+    }
+
+    /** 1.12.2 metadata of this state: the facing index, 0..5. */
+    public static int metaOf(BlockState state) {
+        return state.getValue(FACING).get3DDataValue();
     }
 
     public ConnectedTextures[] getTextures() {
         return textures;
     }
 
-    // --- state / meta (identity 0..15) ---
-    @Override
-    protected BlockStateContainer createBlockState() {
-        return new ExtendedBlockState(this, new IProperty[]{META}, new IUnlistedProperty[]{RENDER});
-    }
-
-    @Override
-    public IBlockState getStateFromMeta(int meta) {
-        return getDefaultState().withProperty(META, meta & 15);
-    }
-
-    @Override
-    public int getMetaFromState(IBlockState state) {
-        return state.getValue(META);
-    }
-
-    // --- render flags ---
-    @Override
-    public EnumBlockRenderType getRenderType(IBlockState state) {
-        return EnumBlockRenderType.MODEL;
-    }
-
-    @Override
-    public boolean isOpaqueCube(IBlockState state) {
-        return false;
-    }
-
-    @Override
-    public boolean isFullCube(IBlockState state) {
-        return false;
-    }
-
-    /**
-     * The original rendered in pass 1, which in 1.7.10 is the alpha-tested pass. Every tts
-     * texture is fully opaque or fully transparent (no partial alpha anywhere in the 123
-     * sprites), so CUTOUT_MIPPED reproduces it exactly. It also keeps the tube in the terrain
-     * pass with depth writes, instead of the translucent pass which draws after and on top of
-     * sky-level geometry such as another mod's clouds.
-     */
-    @Override
-    public BlockRenderLayer getRenderLayer() {
-        return BlockRenderLayer.CUTOUT_MIPPED;
-    }
-
-    @Override
-    public boolean canRenderInLayer(IBlockState state, BlockRenderLayer layer) {
-        return layer == BlockRenderLayer.CUTOUT_MIPPED;
-    }
-
-    // --- connected-texture render data (replaces func_149673_e + RenderTube) ---
-    @Override
-    public IBlockState getExtendedState(IBlockState state, IBlockAccess world, BlockPos pos) {
-        if (!(state instanceof IExtendedBlockState)) {
-            return state;
-        }
-        int meta = getMetaFromState(world.getBlockState(pos));
-        if (meta > 5) {
-            meta = 0;
-        }
-        TubeRenderData data = new TubeRenderData(meta);
-        EnumFacing axis = EnumFacing.byIndex(meta);
-        for (int s = 0; s < 6; s++) {
-            ConnectedTextures set = pickSet(meta, axis, s);
-            data.outerSprite[s] = set.spriteName(set.getIndexForSide(world, pos, s));
-            data.innerSprite[s] = set.spriteName(set.getIndexForSideForInternal(world, pos, s));
-        }
-        for (EnumFacing f : EnumFacing.values()) {
-            data.connByFacing[f.getIndex()] = canConnectTo(world, pos, f);
-        }
-        return ((IExtendedBlockState) state).withProperty(RENDER, data);
-    }
-
-    /** Mirrors BlockTube.func_149673_e: cap faces (along axis) use tube/, lateral use tube{dir}. */
-    private ConnectedTextures pickSet(int meta, EnumFacing axis, int s) {
+    /** Mirrors BlockTube.func_149673_e: cap faces (along the axis) use tube/, lateral use tube{dir}. */
+    public ConnectedTextures pickSet(int meta, Direction axis, int s) {
         boolean cap;
-        if (axis == EnumFacing.UP || axis == EnumFacing.DOWN) {
+        if (axis == Direction.UP || axis == Direction.DOWN) {
             cap = (s == 0 || s == 1);
-        } else if (axis == EnumFacing.NORTH || axis == EnumFacing.SOUTH) {
+        } else if (axis == Direction.NORTH || axis == Direction.SOUTH) {
             cap = (s == 2 || s == 3);
         } else {
             cap = (s == 4 || s == 5);
@@ -145,109 +77,94 @@ public class BlockTube extends Block implements IConnectable {
         return cap ? textures[meta + 6] : textures[meta];
     }
 
+    @Override
+    public BlockState getStateForPlacement(BlockPlaceContext context) {
+        // ItemTube decides the real direction; this is only the fallback for other placers.
+        return defaultBlockState().setValue(FACING, context.getClickedFace());
+    }
+
     /**
-     * Port of the 1.7.10 override. There the callback received the NEIGHBOUR cell and
-     * mapped back to self with getCoordinatesFromSide; in 1.12.2 pos is already self and
-     * the neighbour is pos.offset(side). Culls the outer skin and the inner connector box
-     * alike, as RenderTube did.
+     * Port of the 1.7.10 face cull.
      *
-     * DEVIATION: the original tests canConnectToStrict (same block AND same direction meta),
-     * this tests canConnectTo (same block). Strict leaves a corner such as UP into NORTH with
-     * both tubes drawing a full face on the shared plane, and the inner boxes are already
-     * flush there, so four coplanar quads z-fight. Collision already treats the pair as
-     * connected through canConnectTo and lets you ride the corner, so the wall it drew was
-     * one you could walk through anyway. Loose culling only changes adjacent tubes whose
-     * directions differ, which is exactly the corner case.
+     * DEVIATION: the original tests the same block AND the same direction, this tests the block
+     * only. Strict leaves a corner such as UP into NORTH with both tubes drawing a full face on
+     * the shared plane, and the inner boxes are already flush there, so four coplanar quads
+     * z-fight. Collision already treats the pair as connected and lets you ride the corner, so
+     * the wall it drew was one you could walk through anyway.
      */
     @Override
-    public boolean shouldSideBeRendered(IBlockState state, IBlockAccess blockAccess, BlockPos pos, EnumFacing side) {
-        return !canConnectTo(blockAccess, pos, side);
+    protected boolean skipRendering(BlockState state, BlockState adjacentState, Direction side) {
+        return adjacentState.is(this);
     }
 
     // --- entity physics inside the tube ---
     @Override
-    public void onEntityCollision(World world, BlockPos pos, IBlockState state, Entity entity) {
+    protected void entityInside(BlockState state, Level level, BlockPos pos, Entity entity) {
         if (entity == null) {
             return;
         }
-        Utilities.entityAccelerate(entity, EnumFacing.byIndex(getMetaFromState(state)));
+        Utilities.entityAccelerate(entity, state.getValue(FACING));
         Utilities.entityLimitSpeed(entity);
         Utilities.entityResetFall(entity);
         Utilities.entityResetWalk(entity);
     }
 
-    // --- collision: wall on each side NOT connected to another tube ---
+    /** Outline and ray trace: the walls the original collisionRayTrace built, 0.05 thick. */
     @Override
-    public void addCollisionBoxToList(IBlockState state, World world, BlockPos pos, AxisAlignedBB entityBox,
-            List<AxisAlignedBB> collidingBoxes, @Nullable Entity entity, boolean isActualState) {
+    protected VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
+        VoxelShape shape = Shapes.empty();
+        for (Direction d : Direction.values()) {
+            if (!canConnectTo(level, pos, d)) {
+                shape = Shapes.or(shape, Utilities.getThinPart(d));
+            }
+        }
+        return shape;
+    }
+
+    /** A wall on each side that is neither connected to another tube nor on the travel axis. */
+    @Override
+    protected VoxelShape getCollisionShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
+        Entity entity = context instanceof EntityCollisionContext ctx ? ctx.getEntity() : null;
         if (entity == null) {
-            return;
+            // The original only ever added boxes for a colliding entity.
+            return Shapes.empty();
         }
-        EnumFacing dir = EnumFacing.byIndex(getMetaFromState(state));
-        List<AxisAlignedBB> axis = new ArrayList<AxisAlignedBB>();
-        for (EnumFacing d : EnumFacing.values()) {
-            if (!(!canConnectTo(world, pos, d)
-                    && (dir != EnumFacing.UP && dir != EnumFacing.DOWN || d != EnumFacing.UP && d != EnumFacing.DOWN)
-                    && (dir != EnumFacing.NORTH && dir != EnumFacing.SOUTH || d != EnumFacing.NORTH && d != EnumFacing.SOUTH)
-                    && (dir != EnumFacing.EAST && dir != EnumFacing.WEST || d != EnumFacing.EAST && d != EnumFacing.WEST))) {
+        Direction dir = state.getValue(FACING);
+        VoxelShape shape = Shapes.empty();
+        for (Direction d : Direction.values()) {
+            if (canConnectTo(level, pos, d) || d.getAxis() == dir.getAxis()) {
                 continue;
             }
-            axis.add(Utilities.getCollisionBoxPart(pos, d));
+            shape = Shapes.or(shape, Utilities.getCollisionBoxPart(d));
         }
-        for (AxisAlignedBB a : axis) {
-            if (a == null || !entityBox.intersects(a)) {
-                continue;
-            }
-            collidingBoxes.add(a);
-        }
+        return shape;
     }
 
     @Override
-    public RayTraceResult collisionRayTrace(IBlockState state, World world, BlockPos pos, Vec3d start, Vec3d end) {
-        LinkedList<AxisAlignedBB> boxes = new LinkedList<AxisAlignedBB>();
-        boolean[] connectTo = new boolean[6];
-        for (int i = 0; i < 6; i++) {
-            connectTo[i] = canConnectTo(world, pos, EnumFacing.byIndex(i));
-        }
-        int x = pos.getX();
-        int y = pos.getY();
-        int z = pos.getZ();
-        if (!connectTo[0]) {
-            boxes.add(new AxisAlignedBB(x, y, z, x + 1, y + 0.05, z + 1));
-        }
-        if (!connectTo[1]) {
-            boxes.add(new AxisAlignedBB(x, y + 0.95, z, x + 1, y + 1, z + 1));
-        }
-        if (!connectTo[2]) {
-            boxes.add(new AxisAlignedBB(x, y, z, x + 1, y + 1, z + 0.05));
-        }
-        if (!connectTo[3]) {
-            boxes.add(new AxisAlignedBB(x, y, z + 0.95, x + 1, y + 1, z + 1));
-        }
-        if (!connectTo[4]) {
-            boxes.add(new AxisAlignedBB(x, y, z, x + 0.05, y + 1, z + 1));
-        }
-        if (!connectTo[5]) {
-            boxes.add(new AxisAlignedBB(x + 0.95, y, z, x + 1, y + 1, z + 1));
-        }
-        return Utilities.rayTraceBoxes(world, pos, this, start, end, boxes);
+    protected int getLightBlock(BlockState state, BlockGetter level, BlockPos pos) {
+        return 0;
     }
 
     @Override
-    public AxisAlignedBB getBoundingBox(IBlockState state, IBlockAccess source, BlockPos pos) {
-        return FULL_BLOCK_AABB;
+    protected boolean propagatesSkylightDown(BlockState state, BlockGetter level, BlockPos pos) {
+        return true;
+    }
+
+    /** As in 1.12.2, picking a placed tube hands back the undirected item. */
+    @Override
+    public ItemStack getCloneItemStack(LevelReader level, BlockPos pos, BlockState state) {
+        return new ItemStack(Registration.TUBE_ITEM.get());
     }
 
     // --- IConnectable ---
     @Override
-    public boolean canConnectTo(IBlockAccess blockAccess, BlockPos pos, EnumFacing d) {
-        return blockAccess.getBlockState(pos.offset(d)).getBlock() == this;
+    public boolean canConnectTo(BlockGetter level, BlockPos pos, Direction d) {
+        return level.getBlockState(pos.relative(d)).is(this);
     }
 
     @Override
-    public boolean canConnectToStrict(IBlockAccess blockAccess, BlockPos pos, EnumFacing d) {
-        BlockPos o = pos.offset(d);
-        return blockAccess.getBlockState(o).getBlock() == this
-                && getMetaFromState(blockAccess.getBlockState(o)) == getMetaFromState(blockAccess.getBlockState(pos));
+    public boolean canConnectToStrict(BlockGetter level, BlockPos pos, Direction d) {
+        BlockState other = level.getBlockState(pos.relative(d));
+        return other.is(this) && metaOf(other) == metaOf(level.getBlockState(pos));
     }
 }

@@ -1,291 +1,207 @@
 package tubeTransportSystem.block;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
-import java.util.List;
+import com.mojang.serialization.MapCodec;
 
-import javax.annotation.Nullable;
-
-import net.minecraft.block.Block;
-import net.minecraft.block.material.Material;
-import net.minecraft.block.properties.IProperty;
-import net.minecraft.block.properties.PropertyInteger;
-import net.minecraft.block.state.BlockStateContainer;
-import net.minecraft.block.state.IBlockState;
-import net.minecraft.entity.Entity;
-import net.minecraft.init.Blocks;
-import net.minecraft.item.ItemStack;
-import net.minecraft.util.BlockRenderLayer;
-import net.minecraft.util.EnumBlockRenderType;
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.NonNullList;
-import net.minecraft.util.math.AxisAlignedBB;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.RayTraceResult;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.Explosion;
-import net.minecraft.world.IBlockAccess;
-import net.minecraft.world.World;
-import net.minecraftforge.common.property.ExtendedBlockState;
-import net.minecraftforge.common.property.IExtendedBlockState;
-import net.minecraftforge.common.property.IUnlistedProperty;
-import tubeTransportSystem.TubeTransportSystem;
-import tubeTransportSystem.client.StationRenderData;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.Blocks;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.level.block.state.properties.BlockStateProperties;
+import net.minecraft.world.level.block.state.properties.BooleanProperty;
+import net.minecraft.world.level.block.state.properties.DirectionProperty;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.EntityCollisionContext;
+import net.minecraft.world.phys.shapes.Shapes;
+import net.minecraft.world.phys.shapes.VoxelShape;
+import tubeTransportSystem.Registration;
 import tubeTransportSystem.util.IConnectable;
-import tubeTransportSystem.util.UnlistedProperty;
 import tubeTransportSystem.util.Utilities;
 
+/**
+ * The two-block-tall station. 1.12.2 kept the entrance direction in metadata 0..5 and set bit 8
+ * on the upper half; that is now {@code facing} plus {@code top}, and {@link #metaOf(BlockState)}
+ * rebuilds the old number for the ported tables.
+ */
 public class BlockStation extends Block implements IConnectable {
-    public static BlockStation instance;
+    public static final MapCodec<BlockStation> CODEC = simpleCodec(BlockStation::new);
     public static final int SHIFT = 8;
 
-    public static final PropertyInteger META = PropertyInteger.create("meta", 0, 15);
-    public static final IUnlistedProperty<StationRenderData> RENDER =
-            new UnlistedProperty<StationRenderData>("station_render", StationRenderData.class);
+    public static final DirectionProperty FACING = BlockStateProperties.HORIZONTAL_FACING;
+    public static final BooleanProperty TOP = BooleanProperty.create("top");
 
-    public BlockStation() {
-        super(Material.ROCK);
-        setTranslationKey("station");
-        instance = this;
-        setLightOpacity(1);
-        setHardness(5.0f);
-        setCreativeTab(TubeTransportSystem.creativeTab);
-        setDefaultState(blockState.getBaseState().withProperty(META, 0));
+    public BlockStation(Properties properties) {
+        super(properties);
+        registerDefaultState(stateDefinition.any().setValue(FACING, Direction.NORTH).setValue(TOP, false));
     }
 
     @Override
-    protected BlockStateContainer createBlockState() {
-        return new ExtendedBlockState(this, new IProperty[]{META}, new IUnlistedProperty[]{RENDER});
+    protected MapCodec<? extends Block> codec() {
+        return CODEC;
     }
 
     @Override
-    public IBlockState getStateFromMeta(int meta) {
-        return getDefaultState().withProperty(META, meta & 15);
+    protected void createBlockStateDefinition(StateDefinition.Builder<Block, BlockState> builder) {
+        builder.add(FACING, TOP);
     }
 
-    @Override
-    public int getMetaFromState(IBlockState state) {
-        return state.getValue(META);
+    /** 1.12.2 metadata of this state: facing index, plus 8 on the upper half. */
+    public static int metaOf(BlockState state) {
+        return state.getValue(FACING).get3DDataValue() + (state.getValue(TOP) ? SHIFT : 0);
     }
 
-    @Override
-    public EnumBlockRenderType getRenderType(IBlockState state) {
-        return EnumBlockRenderType.MODEL;
-    }
-
-    @Override
-    public boolean isOpaqueCube(IBlockState state) {
-        return false;
-    }
-
-    @Override
-    public boolean isFullCube(IBlockState state) {
-        return false;
-    }
-
-    /**
-     * The entrance sprites are cut out (alpha 0 or 255, nothing between). 1.7.10 rendered the
-     * station in pass 0, which is alpha tested, so those texels were see-through; the 1.12.2
-     * SOLID layer has no alpha test and drew them white instead.
-     */
-    @Override
-    public BlockRenderLayer getRenderLayer() {
-        return BlockRenderLayer.CUTOUT_MIPPED;
-    }
-
-    @Override
-    public boolean canRenderInLayer(IBlockState state, BlockRenderLayer layer) {
-        return layer == BlockRenderLayer.CUTOUT_MIPPED;
+    public static BlockState of(Direction facing, boolean top) {
+        return Registration.STATION.get().defaultBlockState()
+                .setValue(FACING, facing)
+                .setValue(TOP, top);
     }
 
     /** Per-side sprite table, port of func_149673_e. */
     public static String spriteForSide(int meta, int s) {
-        if (meta == EnumFacing.NORTH.getIndex() && s == 2) {
-            return "tts:station_entr1";
+        if (meta == Direction.NORTH.get3DDataValue() && s == 2) {
+            return "tts:block/station_entr1";
         }
-        if (meta == EnumFacing.NORTH.getIndex() + 8 && s == 2) {
-            return "tts:station_entr2";
+        if (meta == Direction.NORTH.get3DDataValue() + SHIFT && s == 2) {
+            return "tts:block/station_entr2";
         }
-        if (meta == EnumFacing.EAST.getIndex() && s == 5) {
-            return "tts:station_entr1";
+        if (meta == Direction.EAST.get3DDataValue() && s == 5) {
+            return "tts:block/station_entr1";
         }
-        if (meta == EnumFacing.EAST.getIndex() + 8 && s == 5) {
-            return "tts:station_entr2";
+        if (meta == Direction.EAST.get3DDataValue() + SHIFT && s == 5) {
+            return "tts:block/station_entr2";
         }
-        if (meta == EnumFacing.SOUTH.getIndex() && s == 3) {
-            return "tts:station_entr1";
+        if (meta == Direction.SOUTH.get3DDataValue() && s == 3) {
+            return "tts:block/station_entr1";
         }
-        if (meta == EnumFacing.SOUTH.getIndex() + 8 && s == 3) {
-            return "tts:station_entr2";
+        if (meta == Direction.SOUTH.get3DDataValue() + SHIFT && s == 3) {
+            return "tts:block/station_entr2";
         }
-        if (meta == EnumFacing.WEST.getIndex() && s == 4) {
-            return "tts:station_entr1";
+        if (meta == Direction.WEST.get3DDataValue() && s == 4) {
+            return "tts:block/station_entr1";
         }
-        if (meta == EnumFacing.WEST.getIndex() + 8 && s == 4) {
-            return "tts:station_entr2";
+        if (meta == Direction.WEST.get3DDataValue() + SHIFT && s == 4) {
+            return "tts:block/station_entr2";
         }
-        return (s == 0 || s == 1) ? "tts:station_misc" : (meta >= 8 ? "tts:station_side1" : "tts:station_side2");
+        return (s == 0 || s == 1)
+                ? "tts:block/station_misc"
+                : (meta >= SHIFT ? "tts:block/station_side1" : "tts:block/station_side2");
+    }
+
+    /** Outline and ray trace, port of addCuboidsForRaytraceStation: every wall but the entrance. */
+    @Override
+    protected VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
+        Direction facing = state.getValue(FACING);
+        VoxelShape shape = Shapes.empty();
+        for (Direction h : Direction.Plane.HORIZONTAL) {
+            if (h != facing) {
+                shape = Shapes.or(shape, Utilities.getThinPart(h));
+            }
+        }
+        if (state.getValue(TOP)) {
+            if (!Utilities.isTube(level, pos.above())) {
+                shape = Shapes.or(shape, Utilities.getThinPart(Direction.UP));
+            }
+        } else if (!Utilities.isTube(level, pos.below())) {
+            shape = Shapes.or(shape, Utilities.getThinPart(Direction.DOWN));
+        }
+        return shape;
     }
 
     @Override
-    public IBlockState getExtendedState(IBlockState state, IBlockAccess world, BlockPos pos) {
-        if (!(state instanceof IExtendedBlockState)) {
-            return state;
+    protected boolean skipRendering(BlockState state, BlockState adjacentState, Direction side) {
+        int s = side.get3DDataValue();
+        if (s > 1) {
+            return false;
         }
-        int meta = getMetaFromState(world.getBlockState(pos));
-        StationRenderData data = new StationRenderData();
-        for (int s = 0; s < 6; s++) {
-            data.sprite[s] = spriteForSide(meta, s);
+        if (adjacentState.is(this)) {
+            return !(metaOf(adjacentState) < SHIFT && s == 1);
         }
-        // RenderStation: the inner box goes flush on the Y side that joins a tube or the partner half
-        Block below = world.getBlockState(pos.down()).getBlock();
-        Block above = world.getBlockState(pos.up()).getBlock();
-        data.minY = (below != BlockTube.instance && below != this) ? 0.01 : 0.0;
-        data.maxY = (above != BlockTube.instance && above != this) ? 0.99 : 1.0;
-        return ((IExtendedBlockState) state).withProperty(RENDER, data);
+        return adjacentState.is(Registration.TUBE.get());
     }
 
     @Override
-    public void getDrops(NonNullList<ItemStack> drops, IBlockAccess world, BlockPos pos, IBlockState state, int fortune) {
-        if (getMetaFromState(state) < 8) {
-            super.getDrops(drops, world, pos, state, fortune);
+    protected VoxelShape getCollisionShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
+        Entity entity = context instanceof EntityCollisionContext ctx ? ctx.getEntity() : null;
+        if (entity == null) {
+            // The original only ever added boxes for a colliding entity.
+            return Shapes.empty();
         }
-    }
-
-    @Override
-    public RayTraceResult collisionRayTrace(IBlockState state, World world, BlockPos pos, Vec3d start, Vec3d end) {
-        LinkedList<AxisAlignedBB> boxes = new LinkedList<AxisAlignedBB>();
-        Utilities.addCuboidsForRaytraceStation(boxes, world, pos);
-        return Utilities.rayTraceBoxes(world, pos, this, start, end, boxes);
-    }
-
-    @Override
-    public boolean shouldSideBeRendered(IBlockState state, IBlockAccess blockAccess, BlockPos pos, EnumFacing side) {
-        int s = side.getIndex();
-        if (s > 1 && s <= 5) {
-            return true;
+        Direction facing = state.getValue(FACING);
+        VoxelShape shape = Shapes.empty();
+        for (Direction h : Direction.Plane.HORIZONTAL) {
+            if (h != facing) {
+                shape = Shapes.or(shape, Utilities.getCollisionBoxPart(h));
+            }
         }
-        // 1.7.10 handed this callback the NEIGHBOUR cell; 1.12.2 hands it self, so offset here.
-        IBlockState neighbour = blockAccess.getBlockState(pos.offset(side));
-        if (neighbour.getBlock() == this) {
-            return getMetaFromState(neighbour) < SHIFT && s == 1;
+        if (state.getValue(TOP)) {
+            BlockPos above = pos.above();
+            if (entity.isShiftKeyDown() && Utilities.tubeDirection(level, above) == Direction.UP.get3DDataValue()) {
+                shape = Shapes.or(shape, Utilities.getCollisionBoxPart(Direction.UP));
+            } else if (!Utilities.isTube(level, above)) {
+                shape = Shapes.or(shape, Utilities.getCollisionBoxPart(Direction.UP));
+            }
+        } else if (entity.getY() >= pos.getY()) {
+            BlockPos below = pos.below();
+            int belowDir = Utilities.tubeDirection(level, below);
+            if (entity.isShiftKeyDown() && belowDir == Direction.DOWN.get3DDataValue()) {
+                shape = Shapes.or(shape, Utilities.COLLISION_FLOOR);
+            } else if (!Utilities.isTube(level, below)) {
+                shape = Shapes.or(shape, Utilities.COLLISION_FLOOR);
+            } else if (belowDir != Direction.DOWN.get3DDataValue()) {
+                shape = Shapes.or(shape, Utilities.COLLISION_FLOOR);
+            }
         }
-        return neighbour.getBlock() != BlockTube.instance;
+        return shape;
+    }
+
+    /** Breaking either half takes the other with it, as the original breakBlock did. */
+    @Override
+    protected void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean movedByPiston) {
+        if (!state.is(newState.getBlock())) {
+            BlockPos partner = state.getValue(TOP) ? pos.below() : pos.above();
+            if (level.getBlockState(partner).is(this)) {
+                level.setBlock(partner, Blocks.AIR.defaultBlockState(),
+                        Block.UPDATE_ALL | Block.UPDATE_SUPPRESS_DROPS);
+            }
+        }
+        super.onRemove(state, level, pos, newState, movedByPiston);
     }
 
     @Override
-    public AxisAlignedBB getBoundingBox(IBlockState state, IBlockAccess source, BlockPos pos) {
-        return FULL_BLOCK_AABB;
-    }
-
-    @Override
-    public void addCollisionBoxToList(IBlockState state, World world, BlockPos pos, AxisAlignedBB entityBox,
-            List<AxisAlignedBB> collidingBoxes, @Nullable Entity entity, boolean isActualState) {
+    protected void entityInside(BlockState state, Level level, BlockPos pos, Entity entity) {
         if (entity == null) {
             return;
         }
-        int meta = getMetaFromState(state);
-        List<AxisAlignedBB> axis = new ArrayList<AxisAlignedBB>();
-        if (meta == EnumFacing.NORTH.getIndex() || meta == EnumFacing.NORTH.getIndex() + 8) {
-            axis.add(Utilities.getCollisionBoxPart(pos, EnumFacing.SOUTH));
-            axis.add(Utilities.getCollisionBoxPart(pos, EnumFacing.EAST));
-            axis.add(Utilities.getCollisionBoxPart(pos, EnumFacing.WEST));
-        } else if (meta == EnumFacing.SOUTH.getIndex() || meta == EnumFacing.SOUTH.getIndex() + 8) {
-            axis.add(Utilities.getCollisionBoxPart(pos, EnumFacing.NORTH));
-            axis.add(Utilities.getCollisionBoxPart(pos, EnumFacing.EAST));
-            axis.add(Utilities.getCollisionBoxPart(pos, EnumFacing.WEST));
-        } else if (meta == EnumFacing.EAST.getIndex() || meta == EnumFacing.EAST.getIndex() + 8) {
-            axis.add(Utilities.getCollisionBoxPart(pos, EnumFacing.WEST));
-            axis.add(Utilities.getCollisionBoxPart(pos, EnumFacing.NORTH));
-            axis.add(Utilities.getCollisionBoxPart(pos, EnumFacing.SOUTH));
-        } else if (meta == EnumFacing.WEST.getIndex() || meta == EnumFacing.WEST.getIndex() + 8) {
-            axis.add(Utilities.getCollisionBoxPart(pos, EnumFacing.EAST));
-            axis.add(Utilities.getCollisionBoxPart(pos, EnumFacing.NORTH));
-            axis.add(Utilities.getCollisionBoxPart(pos, EnumFacing.SOUTH));
-        }
-        if (meta >= 8) {
-            if (entity.isSneaking() && metaAt(world, pos.up()) == EnumFacing.UP.getIndex()) {
-                axis.add(Utilities.getCollisionBoxPart(pos, EnumFacing.UP));
-            } else if (world.getBlockState(pos.up()).getBlock() != BlockTube.instance) {
-                axis.add(Utilities.getCollisionBoxPart(pos, EnumFacing.UP));
-            }
-        } else if (entity.posY >= pos.getY()) {
-            if (entity.isSneaking() && metaAt(world, pos.down()) == EnumFacing.DOWN.getIndex()) {
-                axis.add(Utilities.getCollisionBoxPartFloor(pos));
-            } else if (world.getBlockState(pos.down()).getBlock() != BlockTube.instance) {
-                axis.add(Utilities.getCollisionBoxPartFloor(pos));
-            } else if (metaAt(world, pos.down()) != EnumFacing.DOWN.getIndex()) {
-                axis.add(Utilities.getCollisionBoxPartFloor(pos));
-            }
-        }
-        for (AxisAlignedBB a : axis) {
-            if (a == null || !entityBox.intersects(a)) {
-                continue;
-            }
-            collidingBoxes.add(a);
-        }
-    }
-
-    private int metaAt(World world, BlockPos pos) {
-        IBlockState st = world.getBlockState(pos);
-        return st.getBlock().getMetaFromState(st);
-    }
-
-    @Override
-    public void onBlockExploded(World world, BlockPos pos, Explosion explosion) {
-        int meta = getMetaFromState(world.getBlockState(pos));
-        if (meta >= 8 && world.getBlockState(pos.down()).getBlock() == this) {
-            world.setBlockToAir(pos.down());
-        } else if (meta < 8 && world.getBlockState(pos.up()).getBlock() == this) {
-            world.setBlockToAir(pos.up());
-        }
-        super.onBlockExploded(world, pos, explosion);
-    }
-
-    @Override
-    public void breakBlock(World world, BlockPos pos, IBlockState state) {
-        int meta = getMetaFromState(state);
-        if (meta >= 8 && world.getBlockState(pos.down()).getBlock() == this) {
-            world.setBlockToAir(pos.down());
-        } else if (meta < 8 && world.getBlockState(pos.up()).getBlock() == this) {
-            world.setBlockToAir(pos.up());
-        }
-        super.breakBlock(world, pos, state);
-    }
-
-    @Override
-    public void onEntityCollision(World world, BlockPos pos, IBlockState state, Entity entity) {
-        if (entity == null) {
-            return;
-        }
-        int meta = getMetaFromState(state);
-        if (!entity.isSneaking() && meta >= 8 && world.getBlockState(pos.up()).getBlock() == BlockTube.instance
-                && metaAt(world, pos.up()) == EnumFacing.UP.getIndex()) {
-            Utilities.entityAccelerate(entity, EnumFacing.UP);
-            Utilities.entityAccelerate(entity, EnumFacing.UP);
+        if (!entity.isShiftKeyDown() && state.getValue(TOP)
+                && Utilities.tubeDirection(level, pos.above()) == Direction.UP.get3DDataValue()) {
+            Utilities.entityAccelerate(entity, Direction.UP);
+            Utilities.entityAccelerate(entity, Direction.UP);
         }
         Utilities.entityLimitSpeed(entity);
     }
 
     @Override
-    public boolean canConnectTo(IBlockAccess blockAccess, BlockPos pos, EnumFacing d) {
-        if (d != EnumFacing.UP && d != EnumFacing.DOWN) {
-            return false;
-        }
-        BlockPos o = pos.offset(d);
-        Block block = blockAccess.getBlockState(o).getBlock();
-        int meta = metaAt2(blockAccess, o);
-        int thisMeta = metaAt2(blockAccess, pos);
-        return block == this && thisMeta >= 8 ? meta == thisMeta - 8 : thisMeta + 8 == meta;
+    protected int getLightBlock(BlockState state, BlockGetter level, BlockPos pos) {
+        return 1;
     }
 
     @Override
-    public boolean canConnectToStrict(IBlockAccess blockAccess, BlockPos pos, EnumFacing d) {
-        return canConnectTo(blockAccess, pos, d);
+    public boolean canConnectTo(BlockGetter level, BlockPos pos, Direction d) {
+        if (d != Direction.UP && d != Direction.DOWN) {
+            return false;
+        }
+        BlockState other = level.getBlockState(pos.relative(d));
+        int meta = other.is(this) ? metaOf(other) : -1;
+        int thisMeta = metaOf(level.getBlockState(pos));
+        return other.is(this) && thisMeta >= SHIFT ? meta == thisMeta - SHIFT : thisMeta + SHIFT == meta;
     }
 
-    private int metaAt2(IBlockAccess world, BlockPos pos) {
-        IBlockState st = world.getBlockState(pos);
-        return st.getBlock().getMetaFromState(st);
+    @Override
+    public boolean canConnectToStrict(BlockGetter level, BlockPos pos, Direction d) {
+        return canConnectTo(level, pos, d);
     }
 }

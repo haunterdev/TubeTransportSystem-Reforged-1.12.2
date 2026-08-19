@@ -1,11 +1,11 @@
 package tubeTransportSystem.util;
 
-import net.minecraft.util.EnumFacing;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.IBlockAccess;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.world.level.BlockGetter;
 
 public interface IConnectable {
-    boolean canConnectTo(IBlockAccess blockAccess, BlockPos pos, EnumFacing d);
+    boolean canConnectTo(BlockGetter level, BlockPos pos, Direction d);
 
-    boolean canConnectToStrict(IBlockAccess blockAccess, BlockPos pos, EnumFacing d);
+    boolean canConnectToStrict(BlockGetter level, BlockPos pos, Direction d);
 }
