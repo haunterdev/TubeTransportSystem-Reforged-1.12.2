@@ -1,0 +1,22 @@
+{
+  "block.tts.tube": "Transport Tube",
+  "block.tts.station": "Tube Station",
+  "block.tts.station_horizontal": "Tube Station",
+
+  "itemgroup.tts": "Tube Transport System",
+
+  "tooltip.tts.direction": "Direction: %s",
+  "tooltip.tts.direction.0": "DOWN",
+  "tooltip.tts.direction.1": "UP",
+  "tooltip.tts.direction.2": "NORTH",
+  "tooltip.tts.direction.3": "SOUTH",
+  "tooltip.tts.direction.4": "EAST",
+  "tooltip.tts.direction.5": "WEST",
+  "tooltip.tts.autodirection.1": "Faces the side you place it on",
+  "tooltip.tts.autodirection.2": "Place on a block's north face for a north tube",
+  "tooltip.tts.autodirection.3": "Craft it to lock a direction instead",
+
+  "tts.configuration.title": "Tube Transport System",
+  "tts.configuration.max_tube_speed": "Max Tube Speed",
+  "tts.configuration.max_tube_speed.tooltip": "The maximum speed an entity can travel through the Transport Tubes"
+}

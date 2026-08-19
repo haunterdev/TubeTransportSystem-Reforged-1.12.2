@@ -1,1 +1,1 @@
-{ "variants": { "normal": { "model": "tts:tube_dummy" } } }
+{ "multipart": [ { "apply": { "model": "tts:block/tube" } } ] }

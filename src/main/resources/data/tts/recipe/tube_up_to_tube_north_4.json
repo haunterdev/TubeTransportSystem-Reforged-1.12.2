@@ -1,0 +1,11 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    { "item": "tts:tube_up" },
+    { "item": "tts:tube_up" },
+    { "item": "tts:tube_up" },
+    { "item": "tts:tube_up" }
+  ],
+  "result": { "count": 4, "id": "tts:tube_north" }
+}

@@ -5,20 +5,25 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 
-import javax.annotation.Nullable;
+import org.jetbrains.annotations.Nullable;
 
-import net.minecraft.block.state.IBlockState;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.block.model.BakedQuad;
-import net.minecraft.client.renderer.block.model.ItemCameraTransforms;
-import net.minecraft.client.renderer.block.model.ItemOverrideList;
+import net.minecraft.client.renderer.block.model.ItemOverrides;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
-import net.minecraft.util.EnumFacing;
-import net.minecraftforge.common.property.IExtendedBlockState;
+import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.BlockAndTintGetter;
+import net.minecraft.world.level.block.state.BlockState;
+import net.neoforged.neoforge.client.ChunkRenderTypeSet;
+import net.neoforged.neoforge.client.model.IDynamicBakedModel;
+import net.neoforged.neoforge.client.model.data.ModelData;
 import tubeTransportSystem.block.BlockTube;
 
 /**
- * Port of RenderTube. The original draws two boxes per tube through
- * renderStandardBlock, so both are culled by BlockTube.shouldSideBeRendered:
+ * Port of RenderTube. The original draws two boxes per tube through renderStandardBlock,
+ * so both are culled by the block's face-cull hook:
  *
  *   1. inner connector box, inset 0.01 on every side NOT connected to a tube,
  *      drawn with setRenderFromInside(true) and flipTexture = true
@@ -27,7 +32,9 @@ import tubeTransportSystem.block.BlockTube;
  * Quads are therefore emitted per side and vanilla applies the cull, which is
  * the same rule the 1.7.10 renderer used.
  */
-public class TubeBakedModel implements net.minecraft.client.renderer.block.model.IBakedModel {
+public class TubeBakedModel implements IDynamicBakedModel {
+    private static final ChunkRenderTypeSet LAYERS = ChunkRenderTypeSet.of(RenderType.cutoutMipped());
+
     private final Function<String, TextureAtlasSprite> sprites;
 
     public TubeBakedModel(Function<String, TextureAtlasSprite> sprites) {
@@ -38,29 +45,41 @@ public class TubeBakedModel implements net.minecraft.client.renderer.block.model
         return sprites.apply(name);
     }
 
+    /** The 1.12.2 getExtendedState: all neighbour sampling happens here, where the level is known. */
     @Override
-    public List<BakedQuad> getQuads(@Nullable IBlockState state, @Nullable EnumFacing side, long rand) {
-        TubeRenderData d = null;
-        if (state instanceof IExtendedBlockState) {
-            d = ((IExtendedBlockState) state).getValue(BlockTube.RENDER);
+    public ModelData getModelData(BlockAndTintGetter level, BlockPos pos, BlockState state, ModelData modelData) {
+        if (!(state.getBlock() instanceof BlockTube)) {
+            return modelData;
         }
+        return modelData.derive().with(TubeRenderData.PROPERTY, TubeRenderData.compute(level, pos, state)).build();
+    }
+
+    @Override
+    public ChunkRenderTypeSet getRenderTypes(BlockState state, RandomSource rand, ModelData data) {
+        return LAYERS;
+    }
+
+    @Override
+    public List<BakedQuad> getQuads(@Nullable BlockState state, @Nullable Direction side, RandomSource rand,
+            ModelData extraData, @Nullable RenderType renderType) {
+        TubeRenderData d = extraData.get(TubeRenderData.PROPERTY);
         if (d == null) {
             // item / fallback: plain cube with the base skin
             if (side != null) {
                 return Collections.emptyList();
             }
-            List<BakedQuad> q = new ArrayList<BakedQuad>();
-            TextureAtlasSprite base = get("tts:tube0/0");
+            List<BakedQuad> q = new ArrayList<>();
+            TextureAtlasSprite base = get("tts:block/tube0/0");
             for (int s = 0; s < 6; s++) {
-                QuadBaker.addBoxFace(q, EnumFacing.byIndex(s), base, 0, 0, 0, 1, 1, 1);
+                QuadBaker.addBoxFace(q, Direction.from3DDataValue(s), base, 0, 0, 0, 1, 1, 1);
             }
             return q;
         }
         if (side == null) {
             return Collections.emptyList();
         }
-        int s = side.getIndex();
-        List<BakedQuad> q = new ArrayList<BakedQuad>();
+        int s = side.get3DDataValue();
+        List<BakedQuad> q = new ArrayList<>();
 
         // outer skin, full cube
         QuadBaker.addBoxFace(q, side, get(d.outerSprite[s]), 0, 0, 0, 1, 1, 1);
@@ -77,10 +96,11 @@ public class TubeBakedModel implements net.minecraft.client.renderer.block.model
     }
 
     @Override
-    public boolean isAmbientOcclusion() {
-        // Off for the same reason as StationBakedModel: 1.12.2 smooth lighting darkens the
-        // inset inner box against solid neighbours. The per-face shade comes from the quads'
-        // diffuse-lighting flag instead.
+    public boolean useAmbientOcclusion() {
+        // 1.7.10 took the AO path here, but modern smooth lighting on an inset box sitting on
+        // solid ground occludes the lower band heavily and darkens the tube. The per-face shade
+        // that actually carried the original look comes from the quads' shade flag, which
+        // QuadBaker sets, so the flat path keeps it.
         return false;
     }
 
@@ -90,22 +110,22 @@ public class TubeBakedModel implements net.minecraft.client.renderer.block.model
     }
 
     @Override
-    public boolean isBuiltInRenderer() {
+    public boolean usesBlockLight() {
+        return true;
+    }
+
+    @Override
+    public boolean isCustomRenderer() {
         return false;
     }
 
     @Override
-    public TextureAtlasSprite getParticleTexture() {
-        return get("tts:tube0/0");
+    public TextureAtlasSprite getParticleIcon() {
+        return get("tts:block/tube0/0");
     }
 
     @Override
-    public ItemCameraTransforms getItemCameraTransforms() {
-        return ItemCameraTransforms.DEFAULT;
-    }
-
-    @Override
-    public ItemOverrideList getOverrides() {
-        return ItemOverrideList.NONE;
+    public ItemOverrides getOverrides() {
+        return ItemOverrides.EMPTY;
     }
 }

@@ -1,0 +1,16 @@
+{
+  "type": "minecraft:crafting_shapeless",
+  "category": "misc",
+  "ingredients": [
+    { "item": "tts:tube" },
+    { "item": "tts:tube" },
+    { "item": "tts:tube" },
+    { "item": "tts:tube" },
+    { "item": "tts:tube" },
+    { "item": "tts:tube" },
+    { "item": "tts:tube" },
+    { "item": "tts:tube" },
+    { "item": "tts:tube" }
+  ],
+  "result": { "count": 9, "id": "tts:tube_down" }
+}
