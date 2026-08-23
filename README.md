@@ -59,7 +59,7 @@ both client and server.
 ## Installation
 
 1. Install Minecraft Forge for 1.12.2.
-2. Drop `tts-0.6.jar` into your `mods` folder.
+2. Put `tts-0.6.jar` into your `mods` folder.
 3. Launch the game.
 
 ## Building
