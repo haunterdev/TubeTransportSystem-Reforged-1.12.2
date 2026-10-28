@@ -1,21 +1,22 @@
 package tubeTransportSystem;
 
-import net.neoforged.fml.event.config.ModConfigEvent;
-import net.neoforged.neoforge.common.ModConfigSpec;
+import net.minecraftforge.common.ForgeConfigSpec;
+import net.minecraftforge.fml.config.ModConfig;
+import net.minecraftforge.fml.event.config.ModConfigEvent;
 
 /**
  * Port of the 1.12.2 {@code config/TubeTransportSystem.cfg}. The single option survives with the
  * same name, default and range; the file is now {@code config/tts-common.toml}.
  */
 public final class Config {
-    private static final ModConfigSpec.Builder BUILDER = new ModConfigSpec.Builder();
+    private static final ForgeConfigSpec.Builder BUILDER = new ForgeConfigSpec.Builder();
 
-    public static final ModConfigSpec.DoubleValue MAX_TUBE_SPEED = BUILDER
+    public static final ForgeConfigSpec.DoubleValue MAX_TUBE_SPEED = BUILDER
             .comment("The maximum speed an entity can travel through the Transport Tubes")
             .translation("tts.configuration.max_tube_speed")
             .defineInRange("MaxTubeSpeed", 0.5, 0.0, 10.0);
 
-    public static final ModConfigSpec SPEC = BUILDER.build();
+    public static final ForgeConfigSpec SPEC = BUILDER.build();
 
     /** Cached so the physics path does not hit the config map every tick, as in the original. */
     public static double maxSpeed = 0.5;
@@ -32,7 +33,7 @@ public final class Config {
         cache(event.getConfig());
     }
 
-    private static void cache(net.neoforged.fml.config.ModConfig config) {
+    private static void cache(ModConfig config) {
         if (config.getSpec() != SPEC) {
             return;
         }

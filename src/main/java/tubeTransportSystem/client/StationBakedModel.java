@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import net.minecraft.client.renderer.RenderType;
@@ -16,9 +17,9 @@ import net.minecraft.core.Direction;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.BlockAndTintGetter;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.neoforge.client.ChunkRenderTypeSet;
-import net.neoforged.neoforge.client.model.IDynamicBakedModel;
-import net.neoforged.neoforge.client.model.data.ModelData;
+import net.minecraftforge.client.ChunkRenderTypeSet;
+import net.minecraftforge.client.model.IDynamicBakedModel;
+import net.minecraftforge.client.model.data.ModelData;
 import tubeTransportSystem.block.BlockStation;
 import tubeTransportSystem.block.BlockStationHorizontal;
 
@@ -47,7 +48,8 @@ public class StationBakedModel implements IDynamicBakedModel {
     }
 
     @Override
-    public ModelData getModelData(BlockAndTintGetter level, BlockPos pos, BlockState state, ModelData modelData) {
+    public @NotNull ModelData getModelData(@NotNull BlockAndTintGetter level, @NotNull BlockPos pos,
+            @NotNull BlockState state, @NotNull ModelData modelData) {
         StationRenderData data;
         if (state.getBlock() instanceof BlockStation) {
             data = StationRenderData.vertical(level, pos, state);
@@ -60,13 +62,14 @@ public class StationBakedModel implements IDynamicBakedModel {
     }
 
     @Override
-    public ChunkRenderTypeSet getRenderTypes(BlockState state, RandomSource rand, ModelData data) {
+    public @NotNull ChunkRenderTypeSet getRenderTypes(@NotNull BlockState state, @NotNull RandomSource rand,
+            @NotNull ModelData data) {
         return LAYERS;
     }
 
     @Override
-    public List<BakedQuad> getQuads(@Nullable BlockState state, @Nullable Direction side, RandomSource rand,
-            ModelData extraData, @Nullable RenderType renderType) {
+    public @NotNull List<BakedQuad> getQuads(@Nullable BlockState state, @Nullable Direction side,
+            @NotNull RandomSource rand, @NotNull ModelData extraData, @Nullable RenderType renderType) {
         StationRenderData d = extraData.get(StationRenderData.PROPERTY);
         if (side == null) {
             if (d != null) {

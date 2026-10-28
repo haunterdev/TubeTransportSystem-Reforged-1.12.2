@@ -5,12 +5,7 @@
     { "item": "tts:tube_east" },
     { "item": "tts:tube_east" },
     { "item": "tts:tube_east" },
-    { "item": "tts:tube_east" },
-    { "item": "tts:tube_east" },
-    { "item": "tts:tube_east" },
-    { "item": "tts:tube_east" },
-    { "item": "tts:tube_east" },
     { "item": "tts:tube_east" }
   ],
-  "result": { "count": 9, "id": "tts:tube_west" }
+  "result": { "count": 4, "item": "tts:tube_west" }
 }

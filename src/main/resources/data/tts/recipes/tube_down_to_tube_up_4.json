@@ -5,12 +5,7 @@
     { "item": "tts:tube_down" },
     { "item": "tts:tube_down" },
     { "item": "tts:tube_down" },
-    { "item": "tts:tube_down" },
-    { "item": "tts:tube_down" },
-    { "item": "tts:tube_down" },
-    { "item": "tts:tube_down" },
-    { "item": "tts:tube_down" },
     { "item": "tts:tube_down" }
   ],
-  "result": { "count": 9, "id": "tts:tube_up" }
+  "result": { "count": 4, "item": "tts:tube_up" }
 }

@@ -6,6 +6,7 @@ import net.minecraft.util.Mth;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import net.minecraft.world.phys.shapes.Shapes;
 import net.minecraft.world.phys.shapes.VoxelShape;
@@ -116,7 +117,7 @@ public final class Utilities {
 
     /** Facing index of a tube at that position, or -1 when it is not a tube. */
     public static int tubeDirection(BlockGetter level, BlockPos pos) {
-        var state = level.getBlockState(pos);
+        BlockState state = level.getBlockState(pos);
         return state.is(Registration.TUBE.get()) ? BlockTube.metaOf(state) : -1;
     }
 

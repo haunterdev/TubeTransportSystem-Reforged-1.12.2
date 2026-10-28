@@ -1,11 +1,11 @@
 <div align="center">
 
-  <h1>Tube Transport System: Reforged (1.21.1)</h1>
+  <h1>Tube Transport System: Reforged (1.20.1)</h1>
 
 </div>
 
-A 1.21.1 NeoForge port of [Tube Transport System](https://www.curseforge.com/minecraft/mc-mods/tube-transport-system)
-by Alz454 (polyrobot), ported by SrNadien from the
+A 1.20.1 Forge port of [Tube Transport System](https://www.curseforge.com/minecraft/mc-mods/tube-transport-system)
+by Alz454 (polyrobot), built from SrNadien's 1.21.1 port of the
 [1.12.2 version](https://github.com/haunterdev/TubeTransportSystem-Reforged-1.12.2/tree/main).
 
 Client and server side mod.
@@ -53,32 +53,34 @@ Client and server side mod.
 
 ## Config
 
-`config/tts-common.toml`, or the Config button on the mod list screen.
+`config/tts-common.toml`
 
 - `MaxTubeSpeed` (default 0.5, range 0.0 to 10.0). The speed cap for anything travelling through a
   tube. Raise it for long distance networks. High values will outrun chunk loading.
 
 ## Requirements
 
-- Minecraft 1.21.1
-- NeoForge 21.1.240 or newer
+- Minecraft 1.20.1
+- Forge 47.4 or newer
 
 ## Installation
 
-1. Install NeoForge for 1.21.1.
-2. Put `tts-1.21.1-0.6.jar` into your `mods` folder.
+1. Install Forge for 1.20.1.
+2. Put `tts-1.20.1-0.6.jar` into your `mods` folder.
 3. Launch the game.
 
 ## Building
 
-1. Clone the repository and check out the `1.21.1` branch.
-2. Run `./gradlew build` with JDK 21.
-3. The jar lands in `build/libs/tts-1.21.1-0.6.jar`.
+1. Clone the repository and check out the `1.20.1` branch.
+2. Run `./gradlew build` with JDK 17 or newer.
+3. The jar lands in `build/libs/tts-1.20.1-0.6.jar`.
+
+`./gradlew runGameTestServer` runs the headless tests in `src/main/java/tubeTransportSystem/gametest`.
 
 ## Credits
 
 - Alz454 (polyrobot), the original Tube Transport System.
-- SrNadien, the 1.21.1 port.
+- SrNadien, the 1.21.1 port this version is built from.
 
 ## License
 

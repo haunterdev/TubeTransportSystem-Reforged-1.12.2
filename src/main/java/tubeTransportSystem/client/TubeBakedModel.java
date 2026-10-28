@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.function.Function;
 
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import net.minecraft.client.renderer.RenderType;
@@ -16,9 +17,9 @@ import net.minecraft.core.Direction;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.BlockAndTintGetter;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.neoforge.client.ChunkRenderTypeSet;
-import net.neoforged.neoforge.client.model.IDynamicBakedModel;
-import net.neoforged.neoforge.client.model.data.ModelData;
+import net.minecraftforge.client.ChunkRenderTypeSet;
+import net.minecraftforge.client.model.IDynamicBakedModel;
+import net.minecraftforge.client.model.data.ModelData;
 import tubeTransportSystem.block.BlockTube;
 
 /**
@@ -47,7 +48,8 @@ public class TubeBakedModel implements IDynamicBakedModel {
 
     /** The 1.12.2 getExtendedState: all neighbour sampling happens here, where the level is known. */
     @Override
-    public ModelData getModelData(BlockAndTintGetter level, BlockPos pos, BlockState state, ModelData modelData) {
+    public @NotNull ModelData getModelData(@NotNull BlockAndTintGetter level, @NotNull BlockPos pos,
+            @NotNull BlockState state, @NotNull ModelData modelData) {
         if (!(state.getBlock() instanceof BlockTube)) {
             return modelData;
         }
@@ -55,13 +57,14 @@ public class TubeBakedModel implements IDynamicBakedModel {
     }
 
     @Override
-    public ChunkRenderTypeSet getRenderTypes(BlockState state, RandomSource rand, ModelData data) {
+    public @NotNull ChunkRenderTypeSet getRenderTypes(@NotNull BlockState state, @NotNull RandomSource rand,
+            @NotNull ModelData data) {
         return LAYERS;
     }
 
     @Override
-    public List<BakedQuad> getQuads(@Nullable BlockState state, @Nullable Direction side, RandomSource rand,
-            ModelData extraData, @Nullable RenderType renderType) {
+    public @NotNull List<BakedQuad> getQuads(@Nullable BlockState state, @Nullable Direction side,
+            @NotNull RandomSource rand, @NotNull ModelData extraData, @Nullable RenderType renderType) {
         TubeRenderData d = extraData.get(TubeRenderData.PROPERTY);
         if (d == null) {
             // item / fallback: plain cube with the base skin

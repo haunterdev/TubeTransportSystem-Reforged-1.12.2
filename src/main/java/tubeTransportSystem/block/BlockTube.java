@@ -1,7 +1,5 @@
 package tubeTransportSystem.block;
 
-import com.mojang.serialization.MapCodec;
-
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.entity.Entity;
@@ -9,7 +7,6 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.context.BlockPlaceContext;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.Level;
-import net.minecraft.world.level.LevelReader;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
@@ -29,7 +26,6 @@ import tubeTransportSystem.util.Utilities;
  * so {@link #metaOf(BlockState)} is the bridge every ported table still uses.
  */
 public class BlockTube extends Block implements IConnectable {
-    public static final MapCodec<BlockTube> CODEC = simpleCodec(BlockTube::new);
     public static final DirectionProperty FACING = BlockStateProperties.FACING;
 
     private final ConnectedTextures[] textures = new ConnectedTextures[12];
@@ -43,11 +39,6 @@ public class BlockTube extends Block implements IConnectable {
         for (int i = 0; i < 6; i++) {
             this.textures[i + 6] = new ConnectedTextures("tts:block/tube/%s", this, i);
         }
-    }
-
-    @Override
-    protected MapCodec<? extends Block> codec() {
-        return CODEC;
     }
 
     @Override
@@ -93,13 +84,13 @@ public class BlockTube extends Block implements IConnectable {
      * the wall it drew was one you could walk through anyway.
      */
     @Override
-    protected boolean skipRendering(BlockState state, BlockState adjacentState, Direction side) {
+    public boolean skipRendering(BlockState state, BlockState adjacentState, Direction side) {
         return adjacentState.is(this);
     }
 
     // --- entity physics inside the tube ---
     @Override
-    protected void entityInside(BlockState state, Level level, BlockPos pos, Entity entity) {
+    public void entityInside(BlockState state, Level level, BlockPos pos, Entity entity) {
         if (entity == null) {
             return;
         }
@@ -111,7 +102,7 @@ public class BlockTube extends Block implements IConnectable {
 
     /** Outline and ray trace: the walls the original collisionRayTrace built, 0.05 thick. */
     @Override
-    protected VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
+    public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
         VoxelShape shape = Shapes.empty();
         for (Direction d : Direction.values()) {
             if (!canConnectTo(level, pos, d)) {
@@ -123,7 +114,7 @@ public class BlockTube extends Block implements IConnectable {
 
     /** A wall on each side that is neither connected to another tube nor on the travel axis. */
     @Override
-    protected VoxelShape getCollisionShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
+    public VoxelShape getCollisionShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
         Entity entity = context instanceof EntityCollisionContext ctx ? ctx.getEntity() : null;
         if (entity == null) {
             // The original only ever added boxes for a colliding entity.
@@ -141,18 +132,18 @@ public class BlockTube extends Block implements IConnectable {
     }
 
     @Override
-    protected int getLightBlock(BlockState state, BlockGetter level, BlockPos pos) {
+    public int getLightBlock(BlockState state, BlockGetter level, BlockPos pos) {
         return 0;
     }
 
     @Override
-    protected boolean propagatesSkylightDown(BlockState state, BlockGetter level, BlockPos pos) {
+    public boolean propagatesSkylightDown(BlockState state, BlockGetter level, BlockPos pos) {
         return true;
     }
 
     /** As in 1.12.2, picking a placed tube hands back the undirected item. */
     @Override
-    public ItemStack getCloneItemStack(LevelReader level, BlockPos pos, BlockState state) {
+    public ItemStack getCloneItemStack(BlockGetter level, BlockPos pos, BlockState state) {
         return new ItemStack(Registration.TUBE_ITEM.get());
     }
 

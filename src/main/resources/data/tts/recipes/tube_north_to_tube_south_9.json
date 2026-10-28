@@ -12,5 +12,5 @@
     { "item": "tts:tube_north" },
     { "item": "tts:tube_north" }
   ],
-  "result": { "count": 9, "id": "tts:tube_south" }
+  "result": { "count": 9, "item": "tts:tube_south" }
 }

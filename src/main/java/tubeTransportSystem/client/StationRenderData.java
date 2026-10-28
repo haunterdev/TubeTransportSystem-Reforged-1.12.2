@@ -5,7 +5,7 @@ import net.minecraft.core.Direction;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.neoforge.client.model.data.ModelProperty;
+import net.minecraftforge.client.model.data.ModelProperty;
 import tubeTransportSystem.Registration;
 import tubeTransportSystem.block.BlockStation;
 import tubeTransportSystem.block.BlockStationHorizontal;

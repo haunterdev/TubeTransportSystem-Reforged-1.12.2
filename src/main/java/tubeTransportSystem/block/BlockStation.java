@@ -1,7 +1,5 @@
 package tubeTransportSystem.block;
 
-import com.mojang.serialization.MapCodec;
-
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.entity.Entity;
@@ -28,7 +26,6 @@ import tubeTransportSystem.util.Utilities;
  * rebuilds the old number for the ported tables.
  */
 public class BlockStation extends Block implements IConnectable {
-    public static final MapCodec<BlockStation> CODEC = simpleCodec(BlockStation::new);
     public static final int SHIFT = 8;
 
     public static final DirectionProperty FACING = BlockStateProperties.HORIZONTAL_FACING;
@@ -37,11 +34,6 @@ public class BlockStation extends Block implements IConnectable {
     public BlockStation(Properties properties) {
         super(properties);
         registerDefaultState(stateDefinition.any().setValue(FACING, Direction.NORTH).setValue(TOP, false));
-    }
-
-    @Override
-    protected MapCodec<? extends Block> codec() {
-        return CODEC;
     }
 
     @Override
@@ -93,7 +85,7 @@ public class BlockStation extends Block implements IConnectable {
 
     /** Outline and ray trace, port of addCuboidsForRaytraceStation: every wall but the entrance. */
     @Override
-    protected VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
+    public VoxelShape getShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
         Direction facing = state.getValue(FACING);
         VoxelShape shape = Shapes.empty();
         for (Direction h : Direction.Plane.HORIZONTAL) {
@@ -112,7 +104,7 @@ public class BlockStation extends Block implements IConnectable {
     }
 
     @Override
-    protected boolean skipRendering(BlockState state, BlockState adjacentState, Direction side) {
+    public boolean skipRendering(BlockState state, BlockState adjacentState, Direction side) {
         int s = side.get3DDataValue();
         if (s > 1) {
             return false;
@@ -124,7 +116,7 @@ public class BlockStation extends Block implements IConnectable {
     }
 
     @Override
-    protected VoxelShape getCollisionShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
+    public VoxelShape getCollisionShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
         Entity entity = context instanceof EntityCollisionContext ctx ? ctx.getEntity() : null;
         if (entity == null) {
             // The original only ever added boxes for a colliding entity.
@@ -160,7 +152,7 @@ public class BlockStation extends Block implements IConnectable {
 
     /** Breaking either half takes the other with it, as the original breakBlock did. */
     @Override
-    protected void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean movedByPiston) {
+    public void onRemove(BlockState state, Level level, BlockPos pos, BlockState newState, boolean movedByPiston) {
         if (!state.is(newState.getBlock())) {
             BlockPos partner = state.getValue(TOP) ? pos.below() : pos.above();
             if (level.getBlockState(partner).is(this)) {
@@ -172,7 +164,7 @@ public class BlockStation extends Block implements IConnectable {
     }
 
     @Override
-    protected void entityInside(BlockState state, Level level, BlockPos pos, Entity entity) {
+    public void entityInside(BlockState state, Level level, BlockPos pos, Entity entity) {
         if (entity == null) {
             return;
         }
@@ -185,7 +177,7 @@ public class BlockStation extends Block implements IConnectable {
     }
 
     @Override
-    protected int getLightBlock(BlockState state, BlockGetter level, BlockPos pos) {
+    public int getLightBlock(BlockState state, BlockGetter level, BlockPos pos) {
         return 1;
     }
 

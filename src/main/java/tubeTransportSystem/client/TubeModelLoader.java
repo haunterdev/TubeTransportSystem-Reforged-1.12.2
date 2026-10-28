@@ -14,9 +14,9 @@ import net.minecraft.client.resources.model.ModelBaker;
 import net.minecraft.client.resources.model.ModelState;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.inventory.InventoryMenu;
-import net.neoforged.neoforge.client.model.geometry.IGeometryBakingContext;
-import net.neoforged.neoforge.client.model.geometry.IGeometryLoader;
-import net.neoforged.neoforge.client.model.geometry.IUnbakedGeometry;
+import net.minecraftforge.client.model.geometry.IGeometryBakingContext;
+import net.minecraftforge.client.model.geometry.IGeometryLoader;
+import net.minecraftforge.client.model.geometry.IUnbakedGeometry;
 
 /**
  * The two custom models are plain {@code {"loader": "tts:tube"}} / {@code {"loader": "tts:station"}}
@@ -58,10 +58,11 @@ public final class TubeModelLoader implements IUnbakedGeometry<TubeModelLoader> 
 
     @Override
     public BakedModel bake(IGeometryBakingContext context, ModelBaker baker,
-            Function<Material, TextureAtlasSprite> spriteGetter, ModelState modelState, ItemOverrides overrides) {
+            Function<Material, TextureAtlasSprite> spriteGetter, ModelState modelState, ItemOverrides overrides,
+            ResourceLocation modelLocation) {
         Map<String, TextureAtlasSprite> resolved = new HashMap<>();
         for (String name : spriteNames()) {
-            resolved.put(name, spriteGetter.apply(new Material(InventoryMenu.BLOCK_ATLAS, ResourceLocation.parse(name))));
+            resolved.put(name, spriteGetter.apply(new Material(InventoryMenu.BLOCK_ATLAS, new ResourceLocation(name))));
         }
         Function<String, TextureAtlasSprite> sprites = resolved::get;
         return tube ? new TubeBakedModel(sprites) : new StationBakedModel(sprites);

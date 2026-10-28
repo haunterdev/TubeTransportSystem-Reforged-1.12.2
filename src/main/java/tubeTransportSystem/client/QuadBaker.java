@@ -11,6 +11,8 @@ import net.minecraft.client.renderer.block.model.FaceBakery;
 import net.minecraft.client.renderer.texture.TextureAtlasSprite;
 import net.minecraft.client.resources.model.BlockModelRotation;
 import net.minecraft.core.Direction;
+import net.minecraft.resources.ResourceLocation;
+import tubeTransportSystem.TubeTransportSystem;
 
 /**
  * Builds axis-aligned box-face quads for the custom baked models, replacing the
@@ -34,6 +36,8 @@ import net.minecraft.core.Direction;
  */
 public final class QuadBaker {
     private static final FaceBakery BAKERY = new FaceBakery();
+    /** Only read by FaceBakery for uvlock error text, which these quads never use. */
+    private static final ResourceLocation MODEL_ID = new ResourceLocation(TubeTransportSystem.MOD_ID, "block/generated");
 
     private QuadBaker() {
     }
@@ -67,7 +71,7 @@ public final class QuadBaker {
         }
 
         BlockElementFace part = new BlockElementFace(null, -1, "", new BlockFaceUV(uvs, uvRotation));
-        BakedQuad quad = BAKERY.bakeQuad(from, to, part, sprite, face, BlockModelRotation.X0_Y0, null, true);
+        BakedQuad quad = BAKERY.bakeQuad(from, to, part, sprite, face, BlockModelRotation.X0_Y0, null, true, MODEL_ID);
         if (renderFromInside) {
             quad = reverseWinding(quad, sprite);
         }

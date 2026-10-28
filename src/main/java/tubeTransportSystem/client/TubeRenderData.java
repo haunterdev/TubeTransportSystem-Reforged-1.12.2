@@ -4,12 +4,12 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.block.state.BlockState;
-import net.neoforged.neoforge.client.model.data.ModelProperty;
+import net.minecraftforge.client.model.data.ModelProperty;
 import tubeTransportSystem.block.BlockTube;
 import tubeTransportSystem.util.ConnectedTextures;
 
 /**
- * Per-tube render description, the 1.12.2 unlisted property in its 1.21.1 shape. It is built in
+ * Per-tube render description, the 1.12.2 unlisted property in its modern shape. It is built in
  * {@link TubeBakedModel#getModelData} (which has the level and position) and read back in
  * getQuads, so no neighbour sampling happens inside the model itself.
  *

@@ -4,5 +4,5 @@
   "ingredients": [
     { "item": "tts:tube_south" }
   ],
-  "result": { "count": 1, "id": "tts:tube_east" }
+  "result": { "count": 1, "item": "tts:tube_east" }
 }

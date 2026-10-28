@@ -13,6 +13,7 @@ import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.context.BlockPlaceContext;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import tubeTransportSystem.block.BlockTube;
@@ -47,6 +48,13 @@ public class ItemTube extends BlockItem {
         }
     }
 
+    @Override
+    public void removeFromBlockToItemMap(Map<Block, Item> blockToItemMap, Item item) {
+        if (direction == UNDIRECTED) {
+            super.removeFromBlockToItemMap(blockToItemMap, item);
+        }
+    }
+
     @Nullable
     @Override
     protected BlockState getPlacementState(BlockPlaceContext context) {
@@ -60,7 +68,7 @@ public class ItemTube extends BlockItem {
     }
 
     @Override
-    public void appendHoverText(ItemStack stack, TooltipContext context, List<Component> tooltip, TooltipFlag flag) {
+    public void appendHoverText(ItemStack stack, @Nullable Level level, List<Component> tooltip, TooltipFlag flag) {
         if (direction == UNDIRECTED) {
             // Not in the 1.7.10 original, which showed no tooltip here, so nothing told a new player
             // that an undirected tube takes its direction from the face it is placed against.

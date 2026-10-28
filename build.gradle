@@ -1,73 +1,71 @@
 plugins {
-    id 'java-library'
-    id 'net.neoforged.moddev' version '2.0.144'
+    id 'eclipse'
+    id 'idea'
+    id 'net.minecraftforge.gradle' version '[6.0,6.2)'
 }
 
-version = "${project.minecraft_version}-${project.mod_version}"
-group = project.mod_group
+version = "${minecraft_version}-${mod_version}"
+group = mod_group_id
+base { archivesName = mod_id }
+java.toolchain.languageVersion = JavaLanguageVersion.of(17)
 
-base {
-    archivesName = project.mod_id
-}
-
-java {
-    toolchain.languageVersion = JavaLanguageVersion.of(21)
-}
-
-neoForge {
-    version = project.neoforge_version
-
+minecraft {
+    mappings channel: mapping_channel, version: mapping_version
+    copyIdeResources = true
     runs {
-        client {
-            client()
-        }
-        server {
-            server()
-        }
         configureEach {
-            logLevel = org.slf4j.event.Level.INFO
+            workingDirectory project.file('run')
+            property 'forge.logging.markers', 'REGISTRIES'
+            property 'forge.logging.console.level', 'debug'
+            mods {
+                "${mod_id}" {
+                    source sourceSets.main
+                }
+            }
         }
-    }
-
-    mods {
-        "${project.mod_id}" {
-            sourceSet sourceSets.main
+        client {}
+        server { args '--nogui' }
+        // Headless GameTests (src/main/java/tubeTransportSystem/gametest). Exits when the suite finishes.
+        gameTestServer {
+            property 'forge.enabledGameTestNamespaces', mod_id
         }
     }
 }
 
 repositories {
     mavenCentral()
-    maven { url = 'https://maven.neoforged.net/releases' }
 }
 
-tasks.withType(ProcessResources).configureEach {
+dependencies {
+    minecraft "net.minecraftforge:forge:${minecraft_version}-${forge_version}"
+}
+
+tasks.named('jar', Jar).configure {
+    manifest {
+        attributes([
+                'Specification-Title'   : mod_id,
+                'Specification-Vendor'  : mod_authors,
+                'Specification-Version' : '1',
+                'Implementation-Title'  : project.name,
+                'Implementation-Version': project.jar.archiveVersion,
+                'Implementation-Vendor' : mod_authors,
+        ])
+    }
+    finalizedBy 'reobfJar'
+}
+
+tasks.named('processResources', ProcessResources).configure {
     var replaceProperties = [
-            minecraft_version      : project.minecraft_version,
-            minecraft_version_range: project.minecraft_version_range,
-            neoforge_version       : project.neoforge_version,
-            neoforge_version_range : project.neoforge_version_range,
-            loader_version_range   : project.loader_version_range,
-            mod_id                 : project.mod_id,
-            mod_name               : project.mod_name,
-            mod_license            : project.mod_license,
-            mod_version            : project.mod_version,
-            mod_authors            : project.mod_authors,
-            mod_description        : project.mod_description
+            minecraft_version: minecraft_version, minecraft_version_range: minecraft_version_range,
+            forge_version: forge_version, forge_version_range: forge_version_range,
+            loader_version_range: loader_version_range,
+            mod_id: mod_id, mod_name: mod_name, mod_license: mod_license, mod_version: mod_version,
+            mod_authors: mod_authors, mod_description: mod_description,
     ]
     inputs.properties replaceProperties
-
-    filesMatching(['META-INF/neoforge.mods.toml']) {
-        expand replaceProperties
+    filesMatching(['META-INF/mods.toml', 'pack.mcmeta']) {
+        expand replaceProperties + [project: project]
     }
 }
 
-tasks.withType(JavaCompile).configureEach {
-    options.encoding = 'UTF-8'
-}
-
-jar {
-    from('LICENSE') {
-        rename { "${it}_${project.base.archivesName.get()}" }
-    }
-}
+tasks.withType(JavaCompile).configureEach { options.encoding = 'UTF-8' }
