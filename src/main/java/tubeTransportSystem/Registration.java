@@ -35,11 +35,16 @@ public final class Registration {
     public static final DeferredRegister<CreativeModeTab> TABS =
             DeferredRegister.create(Registries.CREATIVE_MODE_TAB, TubeTransportSystem.MOD_ID);
 
+    /**
+     * 1.12.2 Material.ROCK: a pickaxe mines it at tool speed and is needed for the drop
+     * (the mineable/pickaxe tag carries the first half).
+     */
     private static BlockBehaviour.Properties stone() {
         return BlockBehaviour.Properties.of()
                 .mapColor(MapColor.STONE)
                 .sound(SoundType.STONE)
                 .strength(5.0F)
+                .requiresCorrectToolForDrops()
                 .noOcclusion()
                 .dynamicShape();
     }

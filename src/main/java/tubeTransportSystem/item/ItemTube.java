@@ -1,6 +1,7 @@
 package tubeTransportSystem.item;
 
 import java.util.List;
+import java.util.Map;
 
 import javax.annotation.Nullable;
 
@@ -8,6 +9,7 @@ import net.minecraft.ChatFormatting;
 import net.minecraft.core.Direction;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.BlockItem;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.item.TooltipFlag;
 import net.minecraft.world.item.context.BlockPlaceContext;
@@ -31,6 +33,18 @@ public class ItemTube extends BlockItem {
 
     public int getDirection() {
         return direction;
+    }
+
+    /**
+     * Seven items share the tube block, and the block-to-item map keeps the last one registered.
+     * Only the undirected item claims the block, so {@code asItem()} is {@code tts:tube}, the
+     * item the 1.12.2 block resolved to.
+     */
+    @Override
+    public void registerBlocks(Map<Block, Item> blockToItemMap, Item item) {
+        if (direction == UNDIRECTED) {
+            super.registerBlocks(blockToItemMap, item);
+        }
     }
 
     @Nullable
