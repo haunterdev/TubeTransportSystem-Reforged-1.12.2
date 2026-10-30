@@ -6,7 +6,7 @@
 
 A 1.20.1 Forge port of [Tube Transport System](https://www.curseforge.com/minecraft/mc-mods/tube-transport-system)
 by Alz454 (polyrobot), built from SrNadien's 1.21.1 port of the
-[1.12.2 version](https://github.com/haunterdev/TubeTransportSystem-Reforged-1.12.2/tree/main).
+[1.12.2 version](https://github.com/haunterdev/TubeTransportSystem-Reforged/tree/main).
 
 Client and server side mod.
 
