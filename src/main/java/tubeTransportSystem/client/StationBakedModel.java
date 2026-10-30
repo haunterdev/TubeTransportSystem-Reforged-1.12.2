@@ -30,8 +30,9 @@ import tubeTransportSystem.block.BlockStationHorizontal;
  *      station) uvRotate 3 on the bottom and the four lateral faces
  *   2. the full 0..1 outer cube, drawn normally
  *
- * Both go through the block's face-cull hook, so quads are emitted per side and
- * vanilla applies the cull.
+ * Both go through the block's face-cull hook. The outer cube is emitted per side, so
+ * vanilla culls it; the inner box has no cull face, so its inset faces are lit from the
+ * station (renderStandardBlock's rule), and StationRenderData.shown applies the cull.
  */
 public class StationBakedModel implements IDynamicBakedModel {
     private static final ChunkRenderTypeSet LAYERS = ChunkRenderTypeSet.of(RenderType.cutoutMipped());
@@ -68,11 +69,11 @@ public class StationBakedModel implements IDynamicBakedModel {
     public List<BakedQuad> getQuads(@Nullable BlockState state, @Nullable Direction side, RandomSource rand,
             ModelData extraData, @Nullable RenderType renderType) {
         StationRenderData d = extraData.get(StationRenderData.PROPERTY);
-        if (side == null) {
-            if (d != null) {
+        if (d == null) {
+            // item / fallback: plain cube with the side skin
+            if (side != null) {
                 return Collections.emptyList();
             }
-            // item / fallback: plain cube with the side skin
             List<BakedQuad> fallback = new ArrayList<>();
             TextureAtlasSprite base = get("tts:block/station_side2");
             for (int s = 0; s < 6; s++) {
@@ -80,19 +81,23 @@ public class StationBakedModel implements IDynamicBakedModel {
             }
             return fallback;
         }
-        int s = side.get3DDataValue();
-        List<BakedQuad> q = new ArrayList<>();
-        String name = d != null ? d.sprite[s] : "tts:block/station_side2";
-        TextureAtlasSprite sprite = get(name);
+        if (side == null) {
+            // inner box, drawn from the inside; RenderStation leaves flipTexture off. No cull face, so
+            // the inset floor is lit from the station, as renderStandardBlock lit it, and not from
+            // the ground under it; d.shown applies the cull instead.
+            List<BakedQuad> q = new ArrayList<>();
+            for (int s = 0; s < 6; s++) {
+                if (d.shown[s]) {
+                    QuadBaker.addBoxFace(q, Direction.from3DDataValue(s), get(d.sprite[s]),
+                            d.minX, d.minY, d.minZ, d.maxX, d.maxY, d.maxZ, true, false, d.uvRotation[s]);
+                }
+            }
+            return q;
+        }
 
         // outer cube
-        QuadBaker.addBoxFace(q, side, sprite, 0, 0, 0, 1, 1, 1);
-
-        // inner box, drawn from the inside; RenderStation leaves flipTexture off
-        if (d != null) {
-            QuadBaker.addBoxFace(q, side, sprite, d.minX, d.minY, d.minZ, d.maxX, d.maxY, d.maxZ,
-                    true, false, d.uvRotation[s]);
-        }
+        List<BakedQuad> q = new ArrayList<>();
+        QuadBaker.addBoxFace(q, side, get(d.sprite[side.get3DDataValue()]), 0, 0, 0, 1, 1, 1);
         return q;
     }
 
