@@ -31,6 +31,12 @@ public class StationRenderData {
     /** uvRotate per face for the inner box; 1.7.10 only ever used 0 or 3 (= 180 degrees). */
     public final int[] uvRotation = new int[6];
 
+    /**
+     * Block.shouldRenderFace by face index. The inner box has no cull face, so the inset floor is
+     * lit from the station rather than from the ground under it; this is the cull it skips.
+     */
+    public final boolean[] shown = new boolean[6];
+
     /** The two-block-tall station: the inner box goes flush on the Y side that joins a tube or the partner half. */
     public static StationRenderData vertical(BlockGetter level, BlockPos pos, BlockState state) {
         int meta = BlockStation.metaOf(state);
@@ -44,6 +50,7 @@ public class StationRenderData {
         Block above = level.getBlockState(pos.above()).getBlock();
         data.minY = (below != tube && below != self) ? 0.01 : 0.0;
         data.maxY = (above != tube && above != self) ? 0.99 : 1.0;
+        cull(level, pos, state, data);
         return data;
     }
 
@@ -88,7 +95,14 @@ public class StationRenderData {
         data.uvRotation[3] = 180;
         data.uvRotation[4] = 180;
         data.uvRotation[5] = 180;
+        cull(level, pos, state, data);
         return data;
+    }
+
+    private static void cull(BlockGetter level, BlockPos pos, BlockState state, StationRenderData data) {
+        for (Direction f : Direction.values()) {
+            data.shown[f.get3DDataValue()] = Block.shouldRenderFace(state, level, pos, f, pos.relative(f));
+        }
     }
 
     /** RenderStation treats another horizontal station or a tube as a continuation of the run. */

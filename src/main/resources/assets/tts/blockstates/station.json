@@ -1,1 +1,1 @@
-{ "multipart": [ { "apply": { "model": "tts:block/station" } } ] }
+{ "variants": { "": { "model": "tts:block/station" } } }

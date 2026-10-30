@@ -1,1 +1,1 @@
-{ "multipart": [ { "apply": { "model": "tts:block/tube" } } ] }
+{ "variants": { "": { "model": "tts:block/tube" } } }

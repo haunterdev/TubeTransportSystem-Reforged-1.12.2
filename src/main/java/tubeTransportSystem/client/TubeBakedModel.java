@@ -30,8 +30,9 @@ import tubeTransportSystem.block.BlockTube;
  *      drawn with setRenderFromInside(true) and flipTexture = true
  *   2. outer skin, the full 0..1 cube, drawn normally
  *
- * Quads are therefore emitted per side and vanilla applies the cull, which is
- * the same rule the 1.7.10 renderer used.
+ * The outer skin is emitted per side, so vanilla culls it and lights it from the
+ * neighbour. The inner box has no cull face: vanilla then lights an inset face from the
+ * tube itself, renderStandardBlock's rule, and TubeRenderData.shown applies the cull.
  */
 public class TubeBakedModel implements IDynamicBakedModel {
     private static final ChunkRenderTypeSet LAYERS = ChunkRenderTypeSet.of(RenderType.cutoutMipped());
@@ -79,22 +80,28 @@ public class TubeBakedModel implements IDynamicBakedModel {
             return q;
         }
         if (side == null) {
-            return Collections.emptyList();
+            // inner connector box: flush 0/1 where connected, inset 0.01 where not. No cull face, so
+            // an inset face is lit from the tube itself, as renderStandardBlock lit it, and not from
+            // the solid block it faces; d.shown applies the cull instead.
+            List<BakedQuad> q = new ArrayList<>();
+            double minX = d.connByFacing[4] ? 0.0 : 0.01;
+            double minY = d.connByFacing[0] ? 0.0 : 0.01;
+            double minZ = d.connByFacing[2] ? 0.0 : 0.01;
+            double maxX = d.connByFacing[5] ? 1.0 : 0.99;
+            double maxY = d.connByFacing[1] ? 1.0 : 0.99;
+            double maxZ = d.connByFacing[3] ? 1.0 : 0.99;
+            for (int s = 0; s < 6; s++) {
+                if (d.shown[s]) {
+                    QuadBaker.addBoxFace(q, Direction.from3DDataValue(s), get(d.innerSprite[s]),
+                            minX, minY, minZ, maxX, maxY, maxZ, true, true, 0);
+                }
+            }
+            return q;
         }
-        int s = side.get3DDataValue();
-        List<BakedQuad> q = new ArrayList<>();
 
         // outer skin, full cube
-        QuadBaker.addBoxFace(q, side, get(d.outerSprite[s]), 0, 0, 0, 1, 1, 1);
-
-        // inner connector box: flush 0/1 where connected, inset 0.01 where not
-        double minX = d.connByFacing[4] ? 0.0 : 0.01;
-        double minY = d.connByFacing[0] ? 0.0 : 0.01;
-        double minZ = d.connByFacing[2] ? 0.0 : 0.01;
-        double maxX = d.connByFacing[5] ? 1.0 : 0.99;
-        double maxY = d.connByFacing[1] ? 1.0 : 0.99;
-        double maxZ = d.connByFacing[3] ? 1.0 : 0.99;
-        QuadBaker.addBoxFace(q, side, get(d.innerSprite[s]), minX, minY, minZ, maxX, maxY, maxZ, true, true, 0);
+        List<BakedQuad> q = new ArrayList<>();
+        QuadBaker.addBoxFace(q, side, get(d.outerSprite[side.get3DDataValue()]), 0, 0, 0, 1, 1, 1);
         return q;
     }
 

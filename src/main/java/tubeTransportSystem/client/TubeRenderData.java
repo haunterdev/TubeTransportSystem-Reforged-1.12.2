@@ -3,6 +3,7 @@ package tubeTransportSystem.client;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraftforge.client.model.data.ModelProperty;
 import tubeTransportSystem.block.BlockTube;
@@ -28,6 +29,11 @@ public class TubeRenderData {
     public final String[] innerSprite = new String[6];
     /** canConnectTo by direction index (D0,U1,N2,S3,W4,E5); drives the inner-box inset. */
     public final boolean[] connByFacing = new boolean[6];
+    /**
+     * Block.shouldRenderFace by direction index. The inner box has no cull face, so an inset face
+     * is lit from the tube rather than from the solid block beside it; this is the cull it skips.
+     */
+    public final boolean[] shown = new boolean[6];
 
     public TubeRenderData(int direction) {
         this.direction = direction;
@@ -45,6 +51,7 @@ public class TubeRenderData {
         }
         for (Direction f : Direction.values()) {
             data.connByFacing[f.get3DDataValue()] = block.canConnectTo(level, pos, f);
+            data.shown[f.get3DDataValue()] = Block.shouldRenderFace(state, level, pos, f, pos.relative(f));
         }
         return data;
     }
