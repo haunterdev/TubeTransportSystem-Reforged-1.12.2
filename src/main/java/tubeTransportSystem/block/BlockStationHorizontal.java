@@ -148,6 +148,16 @@ public class BlockStationHorizontal extends Block implements IConnectable {
         return side == out && adjacentState.is(Registration.TUBE.get());
     }
 
+    /**
+     * Face culling is skipRendering's alone, as 1.12.2's shouldSideBeRendered decided it outright.
+     * The default occlusion shape is the outline, so the ground under a station hid its floor,
+     * outside and in, and a solid block beside it hid that wall.
+     */
+    @Override
+    protected VoxelShape getOcclusionShape(BlockState state, BlockGetter level, BlockPos pos) {
+        return Shapes.empty();
+    }
+
     @Override
     protected VoxelShape getCollisionShape(BlockState state, BlockGetter level, BlockPos pos, CollisionContext context) {
         Entity entity = context instanceof EntityCollisionContext ctx ? ctx.getEntity() : null;

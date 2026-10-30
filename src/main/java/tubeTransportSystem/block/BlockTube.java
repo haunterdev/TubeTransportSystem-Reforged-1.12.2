@@ -97,6 +97,16 @@ public class BlockTube extends Block implements IConnectable {
         return adjacentState.is(this);
     }
 
+    /**
+     * Face culling is skipRendering's alone, as 1.12.2's shouldSideBeRendered decided it outright.
+     * The default occlusion shape is the outline, whose walls reach the block edge, so a solid
+     * neighbour also hid that side and its inner connector skin with it.
+     */
+    @Override
+    protected VoxelShape getOcclusionShape(BlockState state, BlockGetter level, BlockPos pos) {
+        return Shapes.empty();
+    }
+
     // --- entity physics inside the tube ---
     @Override
     protected void entityInside(BlockState state, Level level, BlockPos pos, Entity entity) {
